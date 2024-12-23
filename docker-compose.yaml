@@ -1,0 +1,32 @@
+services:
+  local-proxy:
+    image: nginx:latest
+    container_name: local-proxy
+    volumes:
+      - ./external:/usr/share/nginx/html/external:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8081:80"
+    restart: unless-stopped
+  osm-import:
+    image: overv/openstreetmap-tile-server-localfile:latest
+    container_name: osm-import
+    volumes:
+      - ./osm-data:/data/database/
+    command: import
+    environment:
+      - DOWNLOAD_PBF=http://local-proxy/external/south-korea-latest.osm.pbf
+    restart: "no"
+    depends_on:
+      - local-proxy
+  osm-tile-server:
+    image: overv/openstreetmap-tile-server-localfile:latest
+    container_name: osm-tile-server
+    ports:
+      - "8080:80"
+      - "5432:5432"
+    volumes:
+      - ./osm-tiles:/data/tiles/
+      - ./osm-data:/data/database/
+    command: run
+    restart: unless-stopped
